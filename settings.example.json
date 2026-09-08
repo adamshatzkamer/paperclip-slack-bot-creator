@@ -1,0 +1,9 @@
+{
+  "ssh_target": "paperclip@your-vps.example",
+  "company_id": "00000000-0000-4000-8000-000000000001",
+  "company_name": "Your Paperclip Company",
+  "plugin_id": "00000000-0000-4000-8000-000000000002",
+  "workspace_id": "T0000000000",
+  "workspace_host": "your-workspace.slack.com",
+  "port": 8765
+}

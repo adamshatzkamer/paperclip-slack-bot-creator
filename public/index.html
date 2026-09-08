@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Paperclip Bot Builder</title><link rel="stylesheet" href="/style.css"></head>
+<body>
+<main>
+  <header><h1>Create a Slack bot</h1><p>Connect a Slack app to an existing Paperclip agent.</p></header>
+  <ol class="steps" aria-label="Setup progress"><li aria-current="step"><span>1</span> Bot details</li><li><span>2</span> Slack authorization</li><li><span>3</span> Deploy</li></ol>
+  <div id="preview" hidden>Preview mode. All Slack and VPS changes are disabled.</div>
+  <div class="layout">
+    <section>
+      <form id="details">
+        <h2>Bot details</h2>
+        <label for="name">Bot name</label><input id="name" name="name" required maxlength="80" placeholder="e.g. Example GM Bot" autocomplete="off">
+        <div class="label-row"><label for="agent">Paperclip agent</label><button id="connect" type="button" class="link">Load agents from VPS</button></div>
+        <select id="agent" required><option value="">Choose an agent</option></select>
+        <label for="channel">Slack channel</label><input id="channel" required placeholder="Paste a channel link or ID" autocomplete="off">
+        <p class="help">Public channels can be joined automatically. Private channels need an invitation.</p>
+        <label class="check"><input type="checkbox" id="private"> This is a private channel</label>
+        <label for="config">App configuration token</label><input id="config" type="password" required autocomplete="off" spellcheck="false">
+        <p class="help">Used only to create the Slack app. Never saved by this tool on this Mac. <a href="https://api.slack.com/apps" target="_blank" rel="noreferrer">Get a configuration token</a> under Your App Configuration Tokens.</p>
+        <details><summary>Review requested Slack permissions</summary><p class="help">Read mentions and conversations in channels the bot joins, reply in threads and DMs, read user details and reactions, and join the selected public channel. No admin scopes, file access, or shared slash command. The existing Paperclip user allowlist is inherited.</p></details>
+        <label class="check"><input id="create-confirm" type="checkbox" required> Create a new app in your configured workspace with these permissions.</label>
+        <button type="submit" id="create">Create Slack app</button>
+      </form>
+      <form id="authorization" hidden>
+        <h2>Slack authorization</h2>
+        <p>Your new app: <strong id="app-id"></strong></p>
+        <ol class="instructions"><li><a id="install" target="_blank" rel="noreferrer">Install the app in your configured workspace</a> and approve its permissions.</li><li>Copy the <strong>Bot User OAuth Token</strong> from OAuth &amp; Permissions.</li><li><a id="general" target="_blank" rel="noreferrer">Open Basic Information</a>. Under App-Level Tokens, generate a token with <strong>connections:write</strong>.</li></ol>
+        <label for="bot-token">Bot token (xoxb-)</label><input id="bot-token" type="password" required autocomplete="off" spellcheck="false">
+        <label for="app-token">App-level token (xapp-)</label><input id="app-token" type="password" required autocomplete="off" spellcheck="false">
+        <p class="help">Both tokens must belong to this new app. Sent over SSH to encrypted Paperclip secrets on your existing VPS; not saved locally by this tool.</p>
+        <p id="private-help" hidden>First invite the new bot to the private channel using Slack’s channel settings.</p>
+        <div class="notice">Deployment adds one bot connection to the existing plugin. All its Slack connections briefly reconnect. Paperclip itself is not restarted. Avoid editing plugin settings during deployment.</div>
+        <label class="check"><input id="deploy-confirm" type="checkbox" required> Deploy this new bot to the selected agent and channel on the VPS. I approve storing its tokens and the brief Slack reconnection.</label>
+        <button type="submit" id="deploy">Submit &amp; deploy bot</button>
+      </form>
+      <section id="result" hidden><h2 id="result-title">Deployment saved</h2><p id="result-text"></p><p><a id="channel-link" target="_blank" rel="noreferrer">Open the Slack channel</a></p><p class="help">Mention the new bot once to test a reply, then continue in that thread without tagging it. A live agent reply is the final end-to-end check; this tool does not send test messages for you.</p></section>
+      <p id="status" role="status" aria-live="polite"></p>
+    </section>
+    <aside><h2>Deployment</h2><p>Existing VPS</p><p id="company">Configured Paperclip company</p><p id="target" class="help"></p><hr><h2>What stays unchanged</h2><p>Existing bots and agent models</p><p>Company settings</p><p>Hermes instances</p><div id="selection"></div></aside>
+  </div>
+  <footer>Slack may require you to approve installation and generate an app-level token before deployment.</footer>
+</main><script src="/app.js"></script>
+</body></html>

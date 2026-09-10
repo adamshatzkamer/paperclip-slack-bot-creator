@@ -31,11 +31,8 @@ def need(value, message):
 
 
 def settings():
-    if not (ROOT / "settings.json").is_file():
-        raise SafeError("Copy settings.example.json to settings.json and configure your own deployment first; use --demo for a disconnected preview.")
     cfg = json.loads((ROOT / "settings.json").read_text())
     need(bool(re.fullmatch(r"[a-z_][a-z0-9_-]*@[a-zA-Z0-9.-]+", cfg["ssh_target"])), "Invalid SSH destination in settings.json.")
-    need(bool(re.fullmatch(r"[a-z0-9-]+\.slack\.com", cfg["workspace_host"])), "Invalid Slack workspace hostname.")
     return cfg
 
 
@@ -43,7 +40,7 @@ def channel_id(value, cfg):
     value = str(value).strip()
     if value.startswith("https://"):
         url = urllib.parse.urlparse(value)
-        need(url.hostname == cfg["workspace_host"] and url.port in (None, 443), "Use a channel link from the configured Slack workspace.")
+        need(url.hostname == cfg["workspace_host"] and url.port in (None, 443), "Use a channel link from AstraMedia.")
         match = re.fullmatch(r"/archives/([CG][A-Z0-9]{8,20})/?", url.path)
         need(match, "Paste a channel link, not a message link.")
         value = match.group(1)
@@ -74,10 +71,16 @@ def manifest(name):
 
 
 def slack(method, token, body=None):
-    req = urllib.request.Request("https://slack.com/api/" + method,
-                                 data=json.dumps(body or {}).encode(),
-                                 headers={"Authorization": "Bearer " + token,
-                                          "Content-Type": "application/json; charset=utf-8"})
+    url = "https://slack.com/api/" + method
+    headers = {"Authorization": "Bearer " + token}
+    if method == "bots.info":
+        # Use the documented GET form so Slack receives the bot lookup argument.
+        url += "?" + urllib.parse.urlencode(body or {})
+        req = urllib.request.Request(url, headers=headers, method="GET")
+    else:
+        headers["Content-Type"] = "application/json; charset=utf-8"
+        req = urllib.request.Request(url, data=json.dumps(body or {}).encode(),
+                                     headers=headers)
     try:
         with urllib.request.build_opener(NoRedirect()).open(req, timeout=30) as response:
             result = json.load(response)
@@ -137,8 +140,15 @@ def run(action, data, cfg=None, slack_call=slack, remote_call=remote):
     need(app_id in app_token.split("-"), "The app-level token does not match this Slack app ID.")
     auth = slack_call("auth.test", bot_token)
     need(auth.get("team_id") == cfg["workspace_id"], "Bot token belongs to a different Slack workspace.")
-    bot = slack_call("bots.info", bot_token, {"bot": auth.get("bot_id")}).get("bot", {})
-    need(bot.get("app_id") == app_id, "Bot token belongs to a different Slack app.")
+    bot_id = auth.get("bot_id")
+    need(isinstance(bot_id, str) and bool(re.fullmatch(r"B[A-Z0-9]+", bot_id)),
+         "Slack did not return a bot ID for this token. Copy the Bot User OAuth Token from OAuth & Permissions and retry.")
+    bot = slack_call("bots.info", bot_token, {"bot": bot_id}).get("bot")
+    actual_app_id = bot.get("app_id") if isinstance(bot, dict) else None
+    need(isinstance(actual_app_id, str) and bool(re.fullmatch(r"A[A-Z0-9]{8,20}", actual_app_id)),
+         "Slack did not return an app ID for this bot, so its app could not be verified. Retry with the Bot User OAuth Token from this app's OAuth & Permissions page.")
+    need(actual_app_id == app_id,
+         f"Bot token belongs to Slack app {actual_app_id}, but this setup expects {app_id}. Copy the Bot User OAuth Token from the expected app's OAuth & Permissions page.")
     slack_call("apps.connections.open", app_token)  # Validate connections:write; never emit the socket URL.
     snapshot = remote_call("inspect", {}, cfg)
     need(snapshot.get("ok"), snapshot.get("error", "VPS inspection failed."))

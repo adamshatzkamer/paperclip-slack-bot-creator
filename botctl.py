@@ -40,7 +40,7 @@ def channel_id(value, cfg):
     value = str(value).strip()
     if value.startswith("https://"):
         url = urllib.parse.urlparse(value)
-        need(url.hostname == cfg["workspace_host"] and url.port in (None, 443), "Use a channel link from AstraMedia.")
+        need(url.hostname == cfg["workspace_host"] and url.port in (None, 443), "Use a channel link.")
         match = re.fullmatch(r"/archives/([CG][A-Z0-9]{8,20})/?", url.path)
         need(match, "Paste a channel link, not a message link.")
         value = match.group(1)
